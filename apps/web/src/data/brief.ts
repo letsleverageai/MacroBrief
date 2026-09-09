@@ -1,0 +1,252 @@
+import type {
+  BriefMeta,
+  CalendarEvent,
+  DecisionMakerItem,
+  EcoRelease,
+  Headline,
+  RunLogEntry,
+} from "@/lib/types";
+
+// As-of: Tuesday 8 September 2026, 06:00 Europe/London (05:00 UTC).
+// Monday 7 Sep was US Labor Day — US 1D performance refers to Friday's close.
+
+export const meta: BriefMeta = {
+  asOf: "2026-09-08",
+  generatedAt: "2026-09-08T05:00:12Z",
+  timezone: "Europe/London",
+  recipients: ["analyst@example.com"],
+  nextEmailAt: "2026-09-09T05:00:00Z",
+  nextDashboardRefreshAt: "2026-09-08T08:00:00Z",
+  lastDashboardRefreshAt: "2026-09-07T08:00:04Z",
+  llmModel: "claude-haiku (summaries) · gpt-4o-mini fallback",
+  costTodayUsd: 0.31,
+};
+
+const FF = "https://www.forexfactory.com/calendar";
+
+const calendarRaw: CalendarEvent[] = [
+  // ---- Tue 8 Sep ----
+  { id: "c1", geo: "CN", at: "2026-09-08T03:00:00Z", title: "Trade Balance (Aug)", importance: "high", consensus: "$99.5bn", previous: "$102.3bn", actual: "$104.8bn", source: "GACC", sourceUrl: "http://english.customs.gov.cn/" },
+  { id: "c2", geo: "UK", at: "2026-09-08T06:00:00Z", title: "Halifax House Price Index (Aug, m/m)", importance: "medium", consensus: "0.2%", previous: "0.4%", source: "Halifax", sourceUrl: "https://www.halifax.co.uk/media-centre/house-price-index.html" },
+  { id: "c3", geo: "UK", at: "2026-09-08T23:01:00Z", title: "BRC Retail Sales Monitor (Aug, y/y)", importance: "medium", consensus: "1.8%", previous: "2.5%", source: "BRC", sourceUrl: "https://brc.org.uk/insight/content/retail-sales/" },
+  { id: "c4", geo: "US", at: "2026-09-08T10:00:00Z", title: "NFIB Small Business Optimism (Aug)", importance: "medium", consensus: "100.5", previous: "100.3", source: "NFIB", sourceUrl: "https://www.nfib.com/surveys/small-business-economic-trends/" },
+  { id: "c5", geo: "US", at: "2026-09-08T17:00:00Z", title: "3Y Note Auction ($58bn)", importance: "medium", source: "US Treasury", sourceUrl: "https://www.treasurydirect.gov/auctions/upcoming/" },
+  // ---- Wed 9 Sep ----
+  { id: "c6", geo: "CN", at: "2026-09-09T01:30:00Z", title: "CPI (Aug, y/y)", importance: "high", consensus: "0.1%", previous: "0.0%", source: "NBS", sourceUrl: "https://www.stats.gov.cn/english/" },
+  { id: "c7", geo: "CN", at: "2026-09-09T01:30:00Z", title: "PPI (Aug, y/y)", importance: "high", consensus: "-2.6%", previous: "-2.9%", source: "NBS", sourceUrl: "https://www.stats.gov.cn/english/" },
+  { id: "c8", geo: "US", at: "2026-09-09T12:30:00Z", title: "PPI Final Demand (Aug, m/m)", importance: "high", consensus: "0.3%", previous: "0.9%", source: "BLS", sourceUrl: "https://www.bls.gov/ppi/" },
+  { id: "c9", geo: "US", at: "2026-09-09T14:00:00Z", title: "Wholesale Inventories (Jul, final)", importance: "medium", consensus: "0.2%", previous: "0.2%", source: "Census", sourceUrl: "https://www.census.gov/wholesale/" },
+  { id: "c10", geo: "US", at: "2026-09-09T17:00:00Z", title: "10Y Note Auction ($39bn)", importance: "medium", source: "US Treasury", sourceUrl: "https://www.treasurydirect.gov/auctions/upcoming/" },
+  // ---- Thu 10 Sep ----
+  { id: "c11", geo: "UK", at: "2026-09-09T23:01:00Z", title: "RICS House Price Balance (Aug)", importance: "medium", consensus: "-10", previous: "-13", source: "RICS", sourceUrl: "https://www.rics.org/news-insights/market-surveys/uk-residential-market-survey" },
+  { id: "c12", geo: "GLOBAL", at: "2026-09-10T12:15:00Z", title: "ECB Rate Decision", importance: "high", consensus: "2.00% (hold)", previous: "2.00%", source: "ECB", sourceUrl: "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html" },
+  { id: "c13", geo: "US", at: "2026-09-10T12:30:00Z", title: "CPI (Aug, y/y)", importance: "high", consensus: "2.9%", previous: "2.7%", source: "BLS", sourceUrl: "https://www.bls.gov/cpi/" },
+  { id: "c14", geo: "US", at: "2026-09-10T12:30:00Z", title: "Core CPI (Aug, m/m)", importance: "high", consensus: "0.3%", previous: "0.3%", source: "BLS", sourceUrl: "https://www.bls.gov/cpi/" },
+  { id: "c15", geo: "US", at: "2026-09-10T12:30:00Z", title: "Initial Jobless Claims", importance: "medium", consensus: "235k", previous: "237k", source: "DOL", sourceUrl: "https://www.dol.gov/ui/data.pdf" },
+  { id: "c16", geo: "US", at: "2026-09-10T17:00:00Z", title: "30Y Bond Auction ($22bn)", importance: "medium", source: "US Treasury", sourceUrl: "https://www.treasurydirect.gov/auctions/upcoming/" },
+  { id: "c17", geo: "CN", at: "2026-09-10T09:00:00Z", title: "Aggregate Financing / New Yuan Loans (Aug)", importance: "high", consensus: "CNY 2.4tn / 0.9tn", previous: "CNY 1.16tn / -0.05tn", source: "PBoC", sourceUrl: "http://www.pbc.gov.cn/en/3688247/3688978/index.html" },
+  // ---- Fri 11 Sep ----
+  { id: "c18", geo: "UK", at: "2026-09-11T06:00:00Z", title: "GDP Monthly (Jul, m/m)", importance: "high", consensus: "0.1%", previous: "0.4%", source: "ONS", sourceUrl: "https://www.ons.gov.uk/economy/grossdomesticproductgdp/bulletins/gdpmonthlyestimateuk/latest" },
+  { id: "c19", geo: "UK", at: "2026-09-11T06:00:00Z", title: "Index of Production (Jul, m/m)", importance: "medium", consensus: "0.0%", previous: "0.7%", source: "ONS", sourceUrl: "https://www.ons.gov.uk/economy/economicoutputandproductivity/output/bulletins/indexofproduction/latest" },
+  { id: "c20", geo: "UK", at: "2026-09-11T06:00:00Z", title: "Trade Balance (Jul)", importance: "medium", consensus: "-£6.0bn", previous: "-£5.6bn", source: "ONS", sourceUrl: "https://www.ons.gov.uk/economy/nationalaccounts/balanceofpayments/bulletins/uktrade/latest" },
+  { id: "c21", geo: "US", at: "2026-09-11T14:00:00Z", title: "UMich Consumer Sentiment (Sep, prelim)", importance: "high", consensus: "58.5", previous: "58.2", source: "UMich", sourceUrl: "https://www.sca.isr.umich.edu/" },
+  { id: "c22", geo: "US", at: "2026-09-11T14:00:00Z", title: "UMich 1Y Inflation Expectations (Sep, prelim)", importance: "medium", consensus: "4.7%", previous: "4.8%", source: "UMich", sourceUrl: "https://www.sca.isr.umich.edu/" },
+  // ---- Next week (look-ahead) ----
+  { id: "c23", geo: "UK", at: "2026-09-15T06:00:00Z", title: "Labour Market: Unemployment / AWE (Jul)", importance: "high", consensus: "4.7% / 4.6% (ex-bonus)", previous: "4.7% / 5.0%", source: "ONS", sourceUrl: "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/bulletins/uklabourmarket/latest" },
+  { id: "c24", geo: "CN", at: "2026-09-15T02:00:00Z", title: "Activity Data: IP / Retail Sales / FAI (Aug)", importance: "high", consensus: "5.7% / 3.9% / 1.4%", previous: "5.7% / 3.7% / 1.6%", source: "NBS", sourceUrl: "https://www.stats.gov.cn/english/" },
+  { id: "c25", geo: "US", at: "2026-09-16T18:00:00Z", title: "FOMC Rate Decision + SEP", importance: "high", consensus: "-25bp to 4.00–4.25%", previous: "4.25–4.50%", source: "Federal Reserve", sourceUrl: "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm" },
+  { id: "c26", geo: "UK", at: "2026-09-16T06:00:00Z", title: "CPI (Aug, y/y)", importance: "high", consensus: "3.7%", previous: "3.8%", source: "ONS", sourceUrl: "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/latest" },
+  { id: "c27", geo: "UK", at: "2026-09-17T11:00:00Z", title: "BoE MPC Decision + Minutes", importance: "high", consensus: "4.00% (hold)", previous: "4.00%", source: "Bank of England", sourceUrl: "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes" },
+];
+export const calendar: CalendarEvent[] = calendarRaw.map((e) => ({ ...e, sourceUrl: e.sourceUrl || FF }));
+
+export const ecoReleases: EcoRelease[] = [
+  {
+    id: "r1", geo: "US", category: "labour",
+    title: "Employment Situation — August 2026",
+    releasedAt: "2026-09-04T12:30:00Z",
+    sourceName: "BLS", sourceUrl: "https://www.bls.gov/news.release/empsit.toc.htm",
+    reportUrl: "https://www.bls.gov/news.release/pdf/empsit.pdf",
+    outcome: "Payrolls +54k, unemployment ticked up to 4.4%; prior two months revised down a combined 38k. AHE +0.3% m/m (3.7% y/y).",
+    consensus: "Street looked for +75k and 4.3%; the miss and revisions cemented a September cut — OIS now prices 32bp for 16 Sep.",
+    surprise: "miss",
+  },
+  {
+    id: "r2", geo: "CN", category: "government",
+    title: "Customs Trade Data — August 2026",
+    releasedAt: "2026-09-08T03:00:00Z",
+    sourceName: "GACC", sourceUrl: "http://english.customs.gov.cn/",
+    reportUrl: "http://english.customs.gov.cn/Statics/",
+    outcome: "Exports +5.9% y/y (USD), imports +1.8%; surplus $104.8bn. Shipments to ASEAN +18%, to US -28% y/y as trade diversion continues.",
+    consensus: "Consensus $99.5bn surplus / exports +5.0% — a beat on export resilience, but import weakness flags soft domestic demand.",
+    surprise: "beat",
+  },
+  {
+    id: "r3", geo: "UK", category: "credit",
+    title: "Halifax House Price Index — August 2026",
+    releasedAt: "2026-09-08T06:00:00Z",
+    sourceName: "Halifax", sourceUrl: "https://www.halifax.co.uk/media-centre/house-price-index.html",
+    reportUrl: "https://www.halifax.co.uk/media-centre/house-price-index.html",
+    outcome: "Prices +0.3% m/m, +2.4% y/y; average price £299,850. Northern regions leading, London flat.",
+    consensus: "Consensus +0.2% m/m — modest beat; Halifax cites improving affordability as mortgage rates drift lower.",
+    surprise: "beat",
+  },
+  {
+    id: "r4", geo: "US", category: "activity",
+    title: "ISM Services PMI — August 2026",
+    releasedAt: "2026-09-03T14:00:00Z",
+    sourceName: "ISM", sourceUrl: "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-report-on-business/",
+    reportUrl: "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-report-on-business/services/august/",
+    outcome: "Headline 52.0 (from 50.1); new orders 56.0, prices paid 69.2 — highest since 2022 as tariff pass-through broadens.",
+    consensus: "Consensus 51.0 — beat on activity, but the prices component is the story for the Fed's 'stagflation-lite' debate.",
+    surprise: "beat",
+  },
+  {
+    id: "r5", geo: "UK", category: "activity",
+    title: "S&P Global UK Services PMI (final) — August 2026",
+    releasedAt: "2026-09-03T08:30:00Z",
+    sourceName: "S&P Global", sourceUrl: "https://www.pmi.spglobal.com/Public/Release/PressReleases",
+    reportUrl: "https://www.pmi.spglobal.com/Public/Release/PressReleases",
+    outcome: "Final 54.2 vs flash 53.6 — fastest expansion in 16 months; employment index still sub-50 for a 12th month.",
+    consensus: "Consensus 53.6 (flash) — upside revision; firms cite NICs and minimum wage costs for continued headcount cuts.",
+    surprise: "beat",
+  },
+  {
+    id: "r6", geo: "CN", category: "other",
+    title: "Caixin Services PMI — August 2026",
+    releasedAt: "2026-09-03T01:45:00Z",
+    sourceName: "Caixin / S&P Global", sourceUrl: "https://www.pmi.spglobal.com/Public/Release/PressReleases",
+    reportUrl: "https://www.pmi.spglobal.com/Public/Release/PressReleases",
+    outcome: "53.0 (from 52.6) — strongest since May 2025, driven by new export business and tourism-linked services.",
+    consensus: "Consensus 52.5 — beat; contrasts with official non-manufacturing PMI at 50.3, keeping the two-speed economy narrative.",
+    surprise: "beat",
+  },
+];
+
+export const decisionMakerFeed: DecisionMakerItem[] = [
+  {
+    id: "d1", geo: "UK", institution: "Bank of England", type: "central_bank",
+    title: "Decision Maker Panel — August 2026 results",
+    publishedAt: "2026-09-03T09:30:00Z",
+    url: "https://www.bankofengland.co.uk/decision-maker-panel/2026/august-2026",
+    summary: "Firms' 1Y-ahead own-price expectations 3.6% (unch.); expected wage growth 3.5% (-0.1pp). Employment expectations -0.5% y/y — a 4th straight negative print, consistent with the MPC's 'gradual' easing path.",
+    tags: ["inflation expectations", "wages", "employment"],
+  },
+  {
+    id: "d2", geo: "UK", institution: "HM Treasury", type: "treasury",
+    title: "Chancellor confirms Autumn Budget date: 25 November 2026",
+    publishedAt: "2026-09-04T11:00:00Z",
+    url: "https://www.gov.uk/government/organisations/hm-treasury",
+    summary: "OBR commissioned for a full forecast. Treasury briefing emphasises 'no return to austerity' but leaves door open to threshold freezes and a gambling duty overhaul; headroom currently est. £9.9bn against the stability rule.",
+    tags: ["fiscal", "budget", "OBR"],
+  },
+  {
+    id: "d3", geo: "US", institution: "Federal Reserve", type: "central_bank",
+    title: "Governor Waller: 'Labor market softening warrants a series of cuts'",
+    publishedAt: "2026-09-04T17:30:00Z",
+    url: "https://www.federalreserve.gov/newsevents/speeches.htm",
+    summary: "Waller argues the tariff price-level shock is one-off and that policy should look through it; sees 'multiple' 25bp cuts over the next 3–6 months if payrolls stay sub-100k.",
+    tags: ["rates", "labour", "tariffs"],
+  },
+  {
+    id: "d4", geo: "US", institution: "Federal Reserve", type: "central_bank",
+    title: "Beige Book — September 2026",
+    publishedAt: "2026-09-02T18:00:00Z",
+    url: "https://www.federalreserve.gov/monetarypolicy/beigebook202609.htm",
+    summary: "Activity 'little changed' in most districts; contacts report passing tariff costs to consumers 'more fully'. Hiring flat, with several districts noting reduced hours rather than layoffs.",
+    tags: ["activity", "tariffs", "labour"],
+  },
+  {
+    id: "d5", geo: "CN", institution: "People's Bank of China", type: "central_bank",
+    title: "Q2 2026 Monetary Policy Implementation Report",
+    publishedAt: "2026-08-28T10:00:00Z",
+    url: "http://www.pbc.gov.cn/en/3688229/3688353/3688356/index.html",
+    summary: "Reiterates 'moderately loose' stance, pledges to keep RMB 'basically stable' and to guide lower comprehensive financing costs. New emphasis on curbing 'involution-style' price competition — read as tolerance for a firmer PPI.",
+    tags: ["monetary policy", "RMB", "deflation"],
+  },
+  {
+    id: "d6", geo: "UK", institution: "Ofgem", type: "regulator",
+    title: "Energy price cap for 1 Oct – 31 Dec 2026: £1,755 (+2.0%)",
+    publishedAt: "2026-08-27T07:00:00Z",
+    url: "https://www.ofgem.gov.uk/energy-price-cap",
+    summary: "Typical dual-fuel bill up £35 on the quarter, driven by network and policy costs rather than wholesale. Adds ~0.05pp to Oct CPI vs BoE August MPR assumption.",
+    tags: ["energy", "CPI", "households"],
+  },
+  {
+    id: "d7", geo: "UK", institution: "FCA / PRA", type: "regulator",
+    title: "PRA CP: Basel 3.1 implementation — final rules and 1 Jan 2027 start date",
+    publishedAt: "2026-09-01T09:00:00Z",
+    url: "https://www.bankofengland.co.uk/prudential-regulation/publication",
+    summary: "PRA confirms 1 Jan 2027 start with 4-year transition; capital impact for major UK banks now 'broadly neutral'. Mortgage risk-weight changes softened vs. 2024 proposals.",
+    tags: ["banks", "capital", "mortgages"],
+  },
+  {
+    id: "d8", geo: "UK", institution: "Office for Budget Responsibility", type: "government",
+    title: "Public finances commentary — August 2026 PSF release",
+    publishedAt: "2026-08-21T07:00:00Z",
+    url: "https://obr.uk/publications/",
+    summary: "Borrowing in Apr–Jul £60.0bn, £6.7bn above the March forecast profile, mainly on higher debt interest and departmental spending. OBR flags upside risk to the full-year borrowing forecast of £117.7bn.",
+    tags: ["fiscal", "PSNB", "gilts"],
+  },
+  {
+    id: "d9", geo: "US", institution: "US Treasury", type: "treasury",
+    title: "Quarterly Refunding Statement — Aug 2026",
+    publishedAt: "2026-08-05T12:30:00Z",
+    url: "https://home.treasury.gov/policy-issues/financing-the-government/quarterly-refunding",
+    summary: "Coupon sizes unchanged 'for at least the next several quarters'; bills share allowed to drift above 22%. Buyback programme expanded to $30bn/quarter in off-the-run 10–30Y.",
+    tags: ["issuance", "duration", "buybacks"],
+  },
+  {
+    id: "d10", geo: "CN", institution: "National Bureau of Statistics", type: "statistics",
+    title: "NBS Official PMI — August 2026",
+    publishedAt: "2026-08-31T01:30:00Z",
+    url: "https://www.stats.gov.cn/english/PressRelease/",
+    summary: "Manufacturing 49.4 (5th month <50); non-manufacturing 50.3. Input prices 53.1 — first sign 'anti-involution' campaign is lifting upstream prices.",
+    tags: ["PMI", "activity", "deflation"],
+  },
+  {
+    id: "d11", geo: "UK", institution: "Ofwat", type: "regulator",
+    title: "Thames Water: Ofwat approves recapitalisation plan; special administration avoided",
+    publishedAt: "2026-09-02T14:00:00Z",
+    url: "https://www.ofwat.gov.uk/",
+    summary: "Creditor-led restructuring writes down £6bn of debt; bill increases capped at PR24 determination. Removes contingent liability risk flagged by OBR.",
+    tags: ["utilities", "credit", "fiscal risk"],
+  },
+  {
+    id: "d12", geo: "UK", institution: "Ofcom", type: "regulator",
+    title: "Online Safety Act: first enforcement decisions against major platforms",
+    publishedAt: "2026-09-01T10:00:00Z",
+    url: "https://www.ofcom.org.uk/",
+    summary: "Fines totalling £42m; US administration reiterates objections in trade talks — watch for read-through to the UK–US tech/tariff negotiation.",
+    tags: ["tech", "trade", "regulation"],
+  },
+];
+
+export const headlines: Headline[] = [
+  { id: "h1", tier: 1, source: "Bloomberg", geo: "US", publishedAt: "2026-09-08T04:12:00Z", access: "title", url: "https://www.bloomberg.com/markets", title: "Treasuries Extend Rally as Traders Bet Fed Will Cut Three Times by Year-End" },
+  { id: "h2", tier: 1, source: "Bloomberg", geo: "UK", publishedAt: "2026-09-08T03:45:00Z", access: "title", url: "https://www.bloomberg.com/uk", title: "Reeves Weighs Gambling Levy and Threshold Freeze to Fill £20 Billion Budget Gap" },
+  { id: "h3", tier: 1, source: "Bloomberg", geo: "CN", publishedAt: "2026-09-08T03:30:00Z", access: "title", url: "https://www.bloomberg.com/asia", title: "China's Export Machine Defies Tariffs as Shipments to Southeast Asia Surge" },
+  { id: "h4", tier: 1, source: "The Economist", geo: "GLOBAL", publishedAt: "2026-09-06T00:00:00Z", access: "title", url: "https://www.economist.com/finance-and-economics", title: "The gilt market is the canary in the global bond mine" },
+  { id: "h5", tier: 2, source: "Financial Times", geo: "UK", publishedAt: "2026-09-08T02:10:00Z", access: "full", url: "https://www.ft.com/", title: "UK pension funds cut long-dated gilt holdings for a sixth straight quarter", summary: "ONS MQ5 data show DB schemes net sold £8bn of >15Y gilts in Q2 as buyout activity accelerates; insurers absorbed only half. DMO expected to tilt issuance shorter." },
+  { id: "h6", tier: 2, source: "Financial Times", geo: "US", publishedAt: "2026-09-08T01:30:00Z", access: "full", url: "https://www.ft.com/", title: "Fed independence fears resurface as White House floats early Powell successor announcement", summary: "Term premium debate revived; 2s30s steepest since 2021. Strategists see limited near-term impact but flag 'a slow-burn risk for the dollar'." },
+  { id: "h7", tier: 2, source: "Wall Street Journal", geo: "US", publishedAt: "2026-09-08T00:50:00Z", access: "title", url: "https://www.wsj.com/economy", title: "Companies Are Finally Passing Tariff Costs to Shoppers. Inflation Data This Week Will Show How Much." },
+  { id: "h8", tier: 2, source: "Wall Street Journal", geo: "CN", publishedAt: "2026-09-07T22:00:00Z", access: "title", url: "https://www.wsj.com/world/china", title: "Beijing Steps Up Property Support With Mortgage Rate Floor Cut in Tier-2 Cities" },
+  { id: "h9", tier: 3, source: "Reuters", geo: "UK", publishedAt: "2026-09-08T04:40:00Z", access: "full", url: "https://www.reuters.com/world/uk/", title: "Sterling firms ahead of GDP data; gilt yields at 4-week low", summary: "GBP/USD 1.341; 10Y gilt 4.45% (-3bp). Traders cite softer US data and a smoother path to the November Budget." },
+  { id: "h10", tier: 3, source: "Reuters", geo: "US", publishedAt: "2026-09-08T04:20:00Z", access: "full", url: "https://www.reuters.com/markets/us/", title: "Oil slips for third day as OPEC+ confirms October output hike", summary: "Brent -1.2% to $68.40. Eight OPEC+ members add a further 137k bpd; demand worries from weak US jobs data compound the move." },
+  { id: "h11", tier: 3, source: "Reuters", geo: "CN", publishedAt: "2026-09-08T03:55:00Z", access: "full", url: "https://www.reuters.com/world/china/", title: "China August exports beat forecasts, imports lag as domestic demand stays soft", summary: "Exports +5.9% y/y vs 5.0% expected; imports +1.8% vs 3.0%. Trade surplus $104.8bn." },
+  { id: "h12", tier: 3, source: "BBC News", geo: "UK", publishedAt: "2026-09-08T05:01:00Z", access: "full", url: "https://www.bbc.co.uk/news/business", title: "Energy bills to rise 2% from October, Ofgem confirms", summary: "Price cap for a typical household set at £1,755; charities warn of rising arrears ahead of winter." },
+  { id: "h13", tier: 3, source: "CNBC", geo: "US", publishedAt: "2026-09-08T04:05:00Z", access: "full", url: "https://www.cnbc.com/economy/", title: "Futures little changed as Wall Street returns from Labor Day with CPI in focus", summary: "S&P futures +0.1%. Apple event Tuesday; Oracle earnings Wednesday." },
+  { id: "h14", tier: 3, source: "Caixin Global", geo: "CN", publishedAt: "2026-09-08T02:30:00Z", access: "full", url: "https://www.caixinglobal.com/", title: "Local governments accelerate special bond issuance to clear corporate arrears", summary: "CNY 480bn issued in August, the most this year; MoF says arrears clearance is 'priority use'." },
+  { id: "h15", tier: 3, source: "Politico", geo: "UK", publishedAt: "2026-09-07T18:00:00Z", access: "full", url: "https://www.politico.eu/uk/", title: "Starmer reshuffle: Treasury team unchanged, new Business Secretary signals 'growth over regulation'", summary: "Markets read as continuity on fiscal rules. Labour trails Reform UK by 8pts in latest YouGov." },
+];
+
+export const runLog: RunLogEntry[] = [
+  { id: "l1", job: "daily_brief.email", startedAt: "2026-09-08T05:00:00Z", durationSec: 212, status: "ok", detail: "Sent to 1 recipient · 34 market rows · 27 calendar events · 6 releases · 12 DM items · 15 headlines · LLM $0.19" },
+  { id: "l2", job: "scan.markets", startedAt: "2026-09-08T04:55:00Z", durationSec: 18, status: "ok", detail: "yfinance 34/34 symbols · US holiday detected (Labor Day) — 1D uses Fri close" },
+  { id: "l3", job: "scan.calendar", startedAt: "2026-09-08T04:55:20Z", durationSec: 4, status: "ok", detail: "ForexFactory JSON · 27 high/med events (US 14, UK 9, CN 5, EZ 1)" },
+  { id: "l4", job: "scan.releases", startedAt: "2026-09-08T04:55:30Z", durationSec: 61, status: "ok", detail: "6 reports fetched & summarised (BLS, GACC, Halifax, ISM, S&P Global ×2)" },
+  { id: "l5", job: "scan.decision_makers", startedAt: "2026-09-08T04:56:40Z", durationSec: 47, status: "warn", detail: "12 new items · PBoC English site timed out twice (cached copy used)" },
+  { id: "l6", job: "scan.news", startedAt: "2026-09-08T04:57:30Z", durationSec: 39, status: "ok", detail: "Brave Search 18 queries · RSS 9 feeds · 15 headlines kept after de-dup/rank" },
+  { id: "l7", job: "dashboard.refresh", startedAt: "2026-09-07T08:00:04Z", durationSec: 96, status: "ok", detail: "ONS 22 series · FRED 16 · NBS/CEIC 12 · 3 series updated (UK Halifax, CN Trade, CN FX reserves)" },
+  { id: "l8", job: "daily_brief.email", startedAt: "2026-09-07T05:00:00Z", durationSec: 205, status: "ok", detail: "Sent to 1 recipient · LLM $0.17" },
+];

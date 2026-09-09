@@ -1,0 +1,169 @@
+# MacroBrief pipeline configuration.
+# This is the "backend you can amend": symbols, series, sources, tiers and decision-maker remits live here,
+# not in code. The web app reads the resulting rows from the database.
+
+geographies: [US, UK, CN]
+timezone: Europe/London
+
+schedule:
+  daily_email: "0 6 * * 1-6"        # 06:00 Mon–Sat
+  dashboard_refresh: "0 9 * * 1-5"  # 09:00 Mon–Fri; re-opening the dashboard does NOT re-pull
+  weekly_positioning: "0 8 * * 6"   # Sat 08:00 (COT lands Fri 20:30 UTC)
+
+# ---------------------------------------------------------------- markets
+markets:
+  # yfinance symbols; unit pct => yield (changes reported in bp)
+  - { symbol: "^GSPC", name: "S&P 500", asset_class: Equities, geo: US }
+  - { symbol: "^NDX", name: "Nasdaq 100", asset_class: Equities, geo: US }
+  - { symbol: "^DJI", name: "Dow Jones", asset_class: Equities, geo: US }
+  - { symbol: "^RUT", name: "Russell 2000", asset_class: Equities, geo: US }
+  - { symbol: "^VIX", name: "VIX", asset_class: Equities, geo: US }
+  - { symbol: "^FTSE", name: "FTSE 100", asset_class: Equities, geo: UK }
+  - { symbol: "^FTMC", name: "FTSE 250", asset_class: Equities, geo: UK }
+  - { symbol: "000001.SS", name: "Shanghai Composite", asset_class: Equities, geo: CN }
+  - { symbol: "000300.SS", name: "CSI 300", asset_class: Equities, geo: CN }
+  - { symbol: "^HSI", name: "Hang Seng", asset_class: Equities, geo: CN }
+  - { symbol: "^STOXX50E", name: "Euro Stoxx 50", asset_class: Equities, geo: GLOBAL }
+  - { symbol: "^N225", name: "Nikkei 225", asset_class: Equities, geo: GLOBAL }
+  - { symbol: "^IRX", name: "US 3M T-bill", asset_class: Rates, geo: US, unit: pct }
+  - { symbol: "^FVX", name: "US 5Y Treasury", asset_class: Rates, geo: US, unit: pct }
+  - { symbol: "^TNX", name: "US 10Y Treasury", asset_class: Rates, geo: US, unit: pct }
+  - { symbol: "^TYX", name: "US 30Y Treasury", asset_class: Rates, geo: US, unit: pct }
+  # Gilts & CGBs: yfinance coverage is patchy → use BoE yield-curve CSV / ChinaBond connectors (see connectors/rates_official.py)
+  - { symbol: "GB10Y", name: "UK 10Y Gilt", asset_class: Rates, geo: UK, unit: pct, source: boe_curve, tenor: 10 }
+  - { symbol: "GB2Y", name: "UK 2Y Gilt", asset_class: Rates, geo: UK, unit: pct, source: boe_curve, tenor: 2 }
+  - { symbol: "GB30Y", name: "UK 30Y Gilt", asset_class: Rates, geo: UK, unit: pct, source: boe_curve, tenor: 30 }
+  - { symbol: "CN10Y", name: "China 10Y CGB", asset_class: Rates, geo: CN, unit: pct, source: chinabond, tenor: 10 }
+  - { symbol: "DX-Y.NYB", name: "US Dollar Index", asset_class: FX, geo: US }
+  - { symbol: "GBPUSD=X", name: "GBP/USD", asset_class: FX, geo: UK }
+  - { symbol: "EURGBP=X", name: "EUR/GBP", asset_class: FX, geo: UK }
+  - { symbol: "EURUSD=X", name: "EUR/USD", asset_class: FX, geo: GLOBAL }
+  - { symbol: "JPY=X", name: "USD/JPY", asset_class: FX, geo: GLOBAL }
+  - { symbol: "CNY=X", name: "USD/CNY", asset_class: FX, geo: CN }
+  - { symbol: "BZ=F", name: "Brent Crude", asset_class: Commodities, geo: GLOBAL }
+  - { symbol: "CL=F", name: "WTI Crude", asset_class: Commodities, geo: US }
+  - { symbol: "GC=F", name: "Gold", asset_class: Commodities, geo: GLOBAL }
+  - { symbol: "SI=F", name: "Silver", asset_class: Commodities, geo: GLOBAL }
+  - { symbol: "HG=F", name: "Copper", asset_class: Commodities, geo: CN }
+  - { symbol: "NG=F", name: "Henry Hub Gas", asset_class: Commodities, geo: US }
+  - { symbol: "TTF=F", name: "TTF Gas", asset_class: Commodities, geo: UK }
+
+# ---------------------------------------------------------------- calendar
+calendar:
+  source: forexfactory        # free JSON feed; alternative: investing_com (scrape), tradingeconomics (paid)
+  importance: [high, medium]
+  country_map: { USD: US, GBP: UK, CNY: CN, EUR: GLOBAL }
+  lookahead_days: 10
+
+# ---------------------------------------------------------------- eco series
+# Each series: id, geo, category, name, unit, source (fred|ons|boe|nbs|manual), source-specific key, official page.
+# Historical backfill on first run; daily append thereafter. You can also seed from SQL/CSV/DataFrame via `macrobrief import`.
+eco_series:
+  - { id: us_cpi, geo: US, category: inflation, name: CPI, unit: "% y/y", freq: M, source: fred, key: CPIAUCSL, transform: yoy, hot: true,
+      url: "https://www.bls.gov/cpi/" }
+  - { id: us_core_cpi, geo: US, category: inflation, name: Core CPI, unit: "% y/y", freq: M, source: fred, key: CPILFESL, transform: yoy, hot: true,
+      url: "https://www.bls.gov/cpi/" }
+  - { id: us_core_pce, geo: US, category: inflation, name: Core PCE, unit: "% y/y", freq: M, source: fred, key: PCEPILFE, transform: yoy, hot: true,
+      url: "https://www.bea.gov/data/personal-consumption-expenditures-price-index" }
+  - { id: us_nfp, geo: US, category: labour, name: Nonfarm Payrolls, unit: "k m/m", freq: M, source: fred, key: PAYEMS, transform: diff,
+      url: "https://www.bls.gov/news.release/empsit.toc.htm" }
+  - { id: us_unemp, geo: US, category: labour, name: Unemployment rate, unit: "%", freq: M, source: fred, key: UNRATE,
+      url: "https://www.bls.gov/news.release/empsit.toc.htm" }
+  - { id: us_retail, geo: US, category: activity, name: Retail Sales, unit: "% m/m", freq: M, source: fred, key: RSAFS, transform: mom,
+      url: "https://www.census.gov/retail/" }
+  - { id: us_ip, geo: US, category: activity, name: Industrial Production, unit: "% m/m", freq: M, source: fred, key: INDPRO, transform: mom,
+      url: "https://www.federalreserve.gov/releases/g17/" }
+  - { id: us_mortgage_rate, geo: US, category: credit, name: 30Y mortgage rate, unit: "%", freq: W, source: fred, key: MORTGAGE30US,
+      url: "https://www.freddiemac.com/pmms" }
+  - { id: us_deficit, geo: US, category: government, name: Federal budget balance (12m), unit: "$bn", freq: M, source: fred, key: MTSDS133FMS, transform: sum12,
+      url: "https://fiscaldata.treasury.gov/" }
+  - { id: uk_cpi, geo: UK, category: inflation, name: CPI, unit: "% y/y", freq: M, source: ons, key: "D7G7/mm23", hot: true,
+      url: "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/latest" }
+  - { id: uk_core_cpi, geo: UK, category: inflation, name: Core CPI, unit: "% y/y", freq: M, source: ons, key: "DKO8/mm23", hot: true,
+      url: "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/dko8/mm23" }
+  - { id: uk_services_cpi, geo: UK, category: inflation, name: Services CPI, unit: "% y/y", freq: M, source: ons, key: "D7F5/mm23", transform: yoy, hot: true,
+      url: "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7f5/mm23" }
+  - { id: uk_unemp, geo: UK, category: labour, name: Unemployment rate, unit: "%", freq: M, source: ons, key: "MGSX/lms",
+      url: "https://www.ons.gov.uk/employmentandlabourmarket/peoplenotinwork/unemployment/timeseries/mgsx/lms" }
+  - { id: uk_awe, geo: UK, category: labour, name: AWE regular pay (3m y/y), unit: "%", freq: M, source: ons, key: "KAI9/lms", hot: true,
+      url: "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/bulletins/averageweeklyearningsingreatbritain/latest" }
+  - { id: uk_vacancies, geo: UK, category: labour, name: Vacancies, unit: "k", freq: M, source: ons, key: "AP2Y/lms",
+      url: "https://www.ons.gov.uk/employmentandlabourmarket/peoplenotinwork/unemployment/timeseries/ap2y/lms" }
+  - { id: uk_gdp_m, geo: UK, category: activity, name: GDP monthly, unit: "% m/m", freq: M, source: ons, key: "ECY2/mgdp", transform: mom,
+      url: "https://www.ons.gov.uk/economy/grossdomesticproductgdp/bulletins/gdpmonthlyestimateuk/latest" }
+  - { id: uk_retail, geo: UK, category: activity, name: Retail sales volumes, unit: "% m/m", freq: M, source: ons, key: "J5EK/drsi", transform: mom,
+      url: "https://www.ons.gov.uk/businessindustryandtrade/retailindustry/bulletins/retailsales/latest" }
+  - { id: uk_psnb, geo: UK, category: government, name: PSNB ex banks, unit: "£bn", freq: M, source: ons, key: "DZLS/pusf", scale: 0.001,
+      url: "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance/bulletins/publicsectorfinances/latest" }
+  - { id: uk_mortgage_appr, geo: UK, category: credit, name: Mortgage approvals, unit: "k", freq: M, source: boe, key: LPMVTVX, scale: 0.001,
+      url: "https://www.bankofengland.co.uk/statistics/money-and-credit" }
+  - { id: uk_dmp_price_exp, geo: UK, category: other, name: "DMP 1Y own-price expectations", unit: "%", freq: M, source: manual, hot: true,
+      url: "https://www.bankofengland.co.uk/decision-maker-panel" }
+  - { id: cn_cpi, geo: CN, category: inflation, name: CPI, unit: "% y/y", freq: M, source: nbs, key: A01010101, hot: true,
+      fallback: "NBS/M_A01010J/A01010J01", transform: minus100,
+      url: "https://www.stats.gov.cn/english/PressRelease/" }
+  - { id: cn_ppi, geo: CN, category: inflation, name: PPI, unit: "% y/y", freq: M, source: nbs, key: A01080101, hot: true,
+      fallback: "NBS/M_A010801/A01080101", transform: minus100,
+      url: "https://www.stats.gov.cn/english/PressRelease/" }
+  - { id: cn_ip, geo: CN, category: activity, name: Industrial Production, unit: "% y/y", freq: M, source: nbs, key: A020101,
+      fallback: "NBS/M_A0201/A020101",
+      url: "https://www.stats.gov.cn/english/PressRelease/" }
+  - { id: cn_retail, geo: CN, category: activity, name: Retail Sales, unit: "% y/y", freq: M, source: nbs, key: A070103,
+      fallback: "NBS/M_A0701/A070103",
+      url: "https://www.stats.gov.cn/english/PressRelease/" }
+  - { id: cn_tsf, geo: CN, category: credit, name: Aggregate financing (new), unit: "CNY tn", freq: M, source: manual,
+      url: "http://www.pbc.gov.cn/en/3688247/3688978/index.html" }
+
+# ---------------------------------------------------------------- decision-maker feeds
+# type: central_bank | treasury | government | regulator | statistics
+decision_maker_feeds:
+  - { geo: UK, institution: Bank of England, type: central_bank, kind: rss, url: "https://www.bankofengland.co.uk/rss/news" }
+  - { geo: UK, institution: Bank of England, type: central_bank, kind: rss, url: "https://www.bankofengland.co.uk/rss/speeches" }
+  - { geo: UK, institution: Bank of England, type: central_bank, kind: rss, url: "https://www.bankofengland.co.uk/rss/publications" }
+  - { geo: UK, institution: HM Treasury, type: treasury, kind: atom, url: "https://www.gov.uk/government/organisations/hm-treasury.atom" }
+  - { geo: UK, institution: "No.10", type: government, kind: atom, url: "https://www.gov.uk/government/organisations/prime-ministers-office-10-downing-street.atom" }
+  - { geo: UK, institution: Office for Budget Responsibility, type: government, kind: rss, url: "https://obr.uk/feed/" }
+  - { geo: UK, institution: FCA, type: regulator, kind: rss, url: "https://www.fca.org.uk/news/rss.xml" }
+  - { geo: UK, institution: Ofgem, type: regulator, kind: rss, url: "https://www.ofgem.gov.uk/rss.xml" }
+  - { geo: UK, institution: Ofcom, type: regulator, kind: rss, url: "https://www.ofcom.org.uk/rss" }
+  - { geo: UK, institution: Ofwat, type: regulator, kind: html, url: "https://www.ofwat.gov.uk/pressreleases/" }
+  - { geo: UK, institution: ONS, type: statistics, kind: rss, url: "https://www.ons.gov.uk/releasecalendar?rss" }
+  - { geo: US, institution: Federal Reserve, type: central_bank, kind: rss, url: "https://www.federalreserve.gov/feeds/press_all.xml" }
+  - { geo: US, institution: Federal Reserve, type: central_bank, kind: rss, url: "https://www.federalreserve.gov/feeds/speeches.xml" }
+  - { geo: US, institution: US Treasury, type: treasury, kind: html, url: "https://home.treasury.gov/news/press-releases" }
+  - { geo: US, institution: BLS, type: statistics, kind: rss, url: "https://www.bls.gov/feed/bls_latest.rss" }
+  - { geo: CN, institution: People's Bank of China, type: central_bank, kind: html, url: "http://www.pbc.gov.cn/en/3688110/3688172/index.html" }
+  - { geo: CN, institution: NBS, type: statistics, kind: html, url: "https://www.stats.gov.cn/english/PressRelease/" }
+  - { geo: CN, institution: Ministry of Finance, type: treasury, kind: html, url: "http://www.mof.gov.cn/en/" }
+
+# ---------------------------------------------------------------- news
+news:
+  tiers:
+    1: ["bloomberg.com", "economist.com"]
+    2: ["ft.com", "wsj.com"]
+    3: ["reuters.com", "bbc.co.uk", "cnbc.com", "caixinglobal.com", "politico.eu", "scmp.com"]
+  rss:
+    - { source: Financial Times, url: "https://www.ft.com/rss/home", tier: 2 }
+    - { source: Wall Street Journal, url: "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain", tier: 2 }
+    - { source: BBC Business, url: "https://feeds.bbci.co.uk/news/business/rss.xml", tier: 3 }
+    - { source: The Economist, url: "https://www.economist.com/finance-and-economics/rss.xml", tier: 1 }
+    - { source: CNBC Economy, url: "https://www.cnbc.com/id/20910258/device/rss/rss.html", tier: 3 }
+  brave_queries:
+    US: ["Federal Reserve", "US Treasury yields", "US inflation", "US jobs report"]
+    UK: ["Bank of England", "gilts", "Rachel Reeves budget", "UK economy"]
+    CN: ["PBoC", "China economy", "China exports", "China property"]
+  max_per_tier: 6
+  # Publisher logins: set FT_COOKIE / WSJ_COOKIE etc. in .env to fetch full text; otherwise title-only.
+
+# ---------------------------------------------------------------- positioning
+positioning:
+  cftc_tff_url: "https://www.cftc.gov/dea/newcot/FinComDisagg.txt"
+  cftc_markets: ["UST 10Y NOTE", "UST 2Y NOTE", "BRITISH POUND", "E-MINI S&P 500", "GOLD"]
+  polymarket_slugs: ["fed-decision-in-september", "bank-of-england-decision-september"]
+
+# ---------------------------------------------------------------- LLM
+llm:
+  model: claude-3-5-haiku-latest
+  max_tokens: 300
+  daily_budget_usd: 1.00
+  # Ground rules baked into prompts: quote figures from the document, never infer numbers, always return source URL.

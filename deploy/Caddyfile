@@ -1,0 +1,55 @@
+{
+	email {$ACME_EMAIL}
+	# Uncomment to test without hitting Let's Encrypt rate limits:
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+	servers {
+		protocols h1 h2 h3
+	}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+		-Server
+	}
+
+	# Brute-force protection on the login endpoint (in addition to the app's own limiter and fail2ban).
+	# Requires the caddy-ratelimit module: build with `xcaddy build --with github.com/mholt/caddy-ratelimit`
+	# or use the image `ghcr.io/…` variant; if you keep the stock image, delete this block and rely on fail2ban.
+	@login path /api/auth/login
+	rate_limit @login {
+		zone login {
+			key {remote_host}
+			events 10
+			window 10m
+		}
+	}
+
+	# Optional: restrict the whole site to known IPs / a Tailscale range.
+	# @notallowed not remote_ip 100.64.0.0/10 203.0.113.7
+	# respond @notallowed 403
+
+	reverse_proxy web:3000 {
+		header_up X-Forwarded-For {remote_host}
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 20mb
+			roll_keep 5
+		}
+		format json
+	}
+}
+
+# Redirect bare IP / other hosts to nothing (don't serve the app on the raw IP)
+:80, :443 {
+	respond 404
+}

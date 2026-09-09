@@ -1,0 +1,49 @@
+[project]
+name = "macrobrief"
+version = "0.1.0"
+description = "MacroBrief data pipeline: scans sources once a day, summarises, emails, and feeds the dashboard."
+requires-python = ">=3.9"
+dependencies = [
+  "pydantic>=2.5",
+  "pyyaml>=6",
+  "httpx>=0.27",
+  "feedparser>=6",
+  "jinja2>=3.1",
+  "sqlalchemy>=2.0",
+  "apscheduler>=3.10,<4",
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "python-dateutil>=2.9",
+  "tenacity>=8",
+]
+
+[project.optional-dependencies]
+markets = ["yfinance>=0.2.40", "pandas>=2"]
+llm = ["anthropic>=0.30", "openai>=1.30"]
+postgres = ["psycopg[binary]>=3.1"]
+email = ["resend>=2"]
+dev = ["pytest>=8", "ruff>=0.4"]
+
+[project.scripts]
+macrobrief = "macrobrief.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["macrobrief*"]
+
+[tool.setuptools.package-data]
+macrobrief = ["templates/*.j2"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+# Typing stays `Optional[...]`/`Dict[...]` on purpose: pydantic evaluates annotations at runtime and the
+# dev box is Python 3.9 (prod image is 3.12). Broad `except Exception` in connectors is intentional — one
+# flaky source must never take down the whole brief; failures are surfaced in run_log instead.
+select = ["E", "F", "W", "I", "B", "SIM"]
+ignore = ["E501", "B008", "SIM105", "SIM115"]

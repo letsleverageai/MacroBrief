@@ -1,0 +1,96 @@
+# MacroBrief — single-node production stack for Hetzner (CX22 is plenty).
+#
+#   caddy (443/80, auto-TLS, rate limits, security headers)
+#     └── web (Next.js, session auth + TOTP)           ← only service reachable from Caddy
+#           └── pipeline (FastAPI + APScheduler)       ← internal network only
+#                 └── db (Postgres 16)                 ← internal network only
+#
+# Usage:  cp .env.example .env && edit → docker compose up -d --build
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [edge]
+    depends_on: [web]
+
+  web:
+    build: ../apps/web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      AUTH_EMAIL: ${AUTH_EMAIL}
+      AUTH_PASSWORD_SHA256: ${AUTH_PASSWORD_SHA256}
+      AUTH_TOTP_SECRET: ${AUTH_TOTP_SECRET}
+      AUTH_SECRET: ${AUTH_SECRET}
+      PIPELINE_URL: http://pipeline:8000
+      PIPELINE_TOKEN: ${PIPELINE_TOKEN}
+    networks: [edge, internal]
+    depends_on: [pipeline]
+    read_only: true
+    tmpfs: ["/tmp", "/app/.next/cache"]
+    security_opt: ["no-new-privileges:true"]
+
+  pipeline:
+    build: ../pipeline
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://macrobrief:${POSTGRES_PASSWORD}@db:5432/macrobrief
+      DASHBOARD_URL: https://${DOMAIN}
+    volumes:
+      - pipeline_data:/app/data
+    networks: [internal]
+    depends_on:
+      db: { condition: service_healthy }
+    security_opt: ["no-new-privileges:true"]
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: macrobrief
+      POSTGRES_USER: macrobrief
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./backup:/backup
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U macrobrief -d macrobrief"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Nightly pg_dump to ./backup (rotate 14 days). Copy off-box with the hardening script's rclone/restic step.
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes: ["./backup:/backup"]
+    networks: [internal]
+    depends_on: [db]
+    entrypoint: >
+      sh -c 'while true; do
+        pg_dump -h db -U macrobrief macrobrief | gzip > /backup/macrobrief-$$(date +%F).sql.gz;
+        find /backup -name "*.sql.gz" -mtime +14 -delete;
+        sleep 86400; done'
+
+networks:
+  edge: {}       # caddy ↔ web
+  internal: {}   # web ↔ pipeline ↔ db. No ports are published on this network, so nothing here is reachable
+                 # from the internet; the pipeline still has outbound access for scraping.
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}
+  pg_data: {}
+  pipeline_data: {}
