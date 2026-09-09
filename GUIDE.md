@@ -8,12 +8,17 @@ This guide is for you to run it, judge it, and tell us what to change.
 
 ---
 
-## 1. Run it (10 minutes, one command)
+## 1. Run it (10 minutes)
 
-You need three things installed: **Node 20+** (nodejs.org), **pnpm** (`npm i -g pnpm`) and **Python 3.9+**.
+You need **Node 20+** (nodejs.org, LTS installer) and **Python 3** (python.org) installed. That's it.
+
+**Easiest (Mac):** double-click **`Start MacroBrief.command`** in the folder. It installs anything missing, runs the first
+scan, starts everything and opens the dashboard in your browser. `Stop MacroBrief.command` stops it.
+(If macOS says it can't be opened: right-click → Open, or System Settings → Privacy & Security → Open Anyway. Once.)
+
+**Or from a terminal** (Cursor: drag the folder onto the Cursor window, then Terminal → New Terminal):
 
 ```bash
-cd MacroBrief
 make up
 ```
 

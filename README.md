@@ -11,9 +11,9 @@ deploy/        Docker Compose, Caddy (TLS/rate-limit), Hetzner hardening script
 docs/          Plan
 ```
 
-## Run it locally (one command)
+## Run it locally
 
-Needs Node 20+, pnpm (`npm i -g pnpm`) and Python 3.9+.
+Needs Node 20+ and Python 3.9+. On a Mac, double-click **`Start MacroBrief.command`** and you're done. Otherwise:
 
 ```bash
 make up          # first run: installs, builds, runs a full scan (~5 min), starts everything
